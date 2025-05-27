@@ -1,0 +1,14 @@
+[
+  {
+    "timestamp": "2025-05-27 12:16:21",
+    "plate_number": "6036",
+    "confidence": 0.8338320851325989,
+    "image_path": "uploads\\capture_20250527_121619.jpg"
+  },
+  {
+    "timestamp": "2025-05-27 12:18:52",
+    "plate_number": "6036",
+    "confidence": 0.9866281747817993,
+    "image_path": "uploads\\capture_20250527_121851.jpg"
+  }
+]

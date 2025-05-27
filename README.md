@@ -1,0 +1,1 @@
+A system that uses a camera to automatically capture and read Sri Lankan vehicle number plates by capturing and processing images
