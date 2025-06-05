@@ -3,447 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📱 License Plate Detector</title>
+    <title>ANPR Flask Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; font-size: 14px; }
+        .top-bar { background-color: #1877f2; color: white; padding: 10px 20px; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; margin-bottom: 15px; }
+        .top-bar h1 { margin: 0; font-size: 22px; }
+        .main-container { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 1200px; padding: 10px; gap:15px;}
+        .control-panel, .feed-panel, .info-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .control-panel { flex: 1; min-width: 300px; max-width:400px; }
+        .feed-panel { flex: 2; min-width: 320px; display: flex; flex-direction: column; align-items: center; }
+        .info-panel { flex: 1; min-width: 300px; max-width:400px; display:flex; flex-direction:column; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: white;
-        }
+        label { display: block; margin-top: 12px; margin-bottom: 4px; font-weight: 600; }
+        input[type="text"], select { width: calc(100% - 20px); padding: 9px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #dddfe2; font-size: 14px; box-sizing: border-box; background-color: white; }
+        button { background-color: #1877f2; color: white; padding: 9px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; width: 100%; transition: background-color 0.2s; margin-top:8px; }
+        button:hover { background-color: #166fe5; }
+        .button-group { display: flex; gap: 8px; margin-bottom:12px;}
+        .button-group button { width: 100%;}
 
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+        #videoFeedContainer { width:100%; text-align: center; background-color: #000; padding: 5px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); min-height: 240px; display: flex; justify-content: center; align-items: center; margin-bottom:15px; }
+        #videoFeed { display: block; max-width: 100%; height: auto; border-radius: 6px; background-color: #333; }
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+        .status { text-align: center; margin-top: 8px; font-size: 12px; color: #606770; min-height:16px; }
+        #phoneCameraPreviewContainer { margin-top:12px; text-align:center; }
+        #phoneCameraPreview { border:1px solid #ccc; border-radius:6px; max-width:100%; height:auto; background-color:#eee; max-height: 180px;}
+        .hidden { display: none; }
 
-        .header h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
+        .log-area-container { margin-top:15px; }
+        #logArea { width: calc(100% - 20px); height: 150px; background-color: #282c34; color: #abb2bf; font-family: 'Courier New', Courier, monospace; font-size: 11px; border: 1px solid #ccc; border-radius: 4px; padding: 8px; overflow-y: scroll; white-space: pre-wrap; box-sizing:border-box; }
+        .log-info { color: #61afef; } /* Blue for info */
+        .log-warn { color: #e5c07b; } /* Yellow for warn */
+        .log-error { color: #e06c75; } /* Red for error */
+        .log-success { color: #98c379; } /* Green for success */
 
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        .camera-section {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        #video {
-            width: 100%;
-            height: 300px;
-            border-radius: 15px;
-            background: #000;
-            object-fit: cover;
-        }
-
-        .camera-controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 25px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            color: white;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(45deg, #3742fa, #2f3542);
-            color: white;
-            box-shadow: 0 4px 15px rgba(55, 66, 250, 0.4);
-        }
-
-        .btn-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(55, 66, 250, 0.6);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        #canvas {
-            display: none;
-        }
-
-        .result-section {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            display: none;
-        }
-
-        .result-success {
-            border-left: 4px solid #00d4aa;
-        }
-
-        .result-error {
-            border-left: 4px solid #ff6b6b;
-        }
-
-        .plate-number {
-            font-size: 2rem;
-            font-weight: bold;
-            text-align: center;
-            margin: 15px 0;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            letter-spacing: 3px;
-        }
-
-        .confidence {
-            text-align: center;
-            font-size: 1.1rem;
-            opacity: 0.9;
-            margin-bottom: 15px;
-        }
-
-        .timestamp {
-            text-align: center;
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-
-        .processed-image {
-            width: 100%;
-            border-radius: 10px;
-            margin-top: 15px;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid white;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .stat {
-            flex: 1;
-        }
-
-        .stat-number {
-            font-size: 1.5rem;
-            font-weight: bold;
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            opacity: 0.8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .logs-section {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .log-entry {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .log-plate {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        .log-time {
-            font-size: 0.8rem;
-            opacity: 0.7;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 15px;
-            }
-
-            .header h1 {
-                font-size: 1.5rem;
-            }
-
-            .camera-controls {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .btn {
-                width: 100%;
-            }
-        }
+        .last-capture-container { margin-top:15px; text-align:center;}
+        #lastCapturedImage { max-width: 100%; max-height:150px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px; background-color:#eee; }
+        #lastCapturedText { font-weight: bold; margin-top:5px; font-size:13px; }
+        h2 { font-size: 18px; color: #333; margin-top:0; margin-bottom:10px; border-bottom: 1px solid #eee; padding-bottom:5px;}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚗 License Plate Detector</h1>
-            <p>Point your camera at a license plate and capture!</p>
+<div class="top-bar">
+    <h1>ANPR Web Interface</h1>
+</div>
+
+<div class="main-container">
+    <div class="control-panel">
+        <h2>Camera Control</h2>
+        <div>
+            <label for="ip_camera_url">IP Camera URL (or 'local'):</label>
+            <input type="text" id="ip_camera_url" name="ip_camera_url" value="local"
+                   placeholder="e.g., http://192.168.X.X/video">
         </div>
-
-        <div class="camera-section">
-            <video id="video" autoplay playsinline></video>
-            <canvas id="canvas"></canvas>
-
-            <div class="camera-controls">
-                <button id="startBtn" class="btn btn-secondary">📷 Start Camera</button>
-                <button id="captureBtn" class="btn btn-primary" disabled>🔍 Detect Plate</button>
-            </div>
-
-            <div class="stats">
-                <div class="stat">
-                    <span id="totalDetections" class="stat-number">0</span>
-                    <span class="stat-label">Total Detections</span>
-                </div>
-                <div class="stat">
-                    <span id="successRate" class="stat-number">0%</span>
-                    <span class="stat-label">Success Rate</span>
-                </div>
-            </div>
+        <div>
+            <label for="camera_id_input">Camera ID:</label>
+            <input type="text" id="camera_id_input" name="camera_id_input" value="default_cam"
+                   placeholder="e.g., cam1_front_gate">
         </div>
-
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p>🔍 Analyzing image for license plates...</p>
+        <div>
+            <label for="location_select">Camera Location:</label>
+            <select id="location_select" name="location_select">
+                {% if camera_locations %}
+                {% for location in camera_locations %}
+                <option value="{{ location.name }}" data-description="{{ location.description | default('', true) }}">
+                    {{ location.name }}
+                </option>
+                {% endfor %}
+                {% else %}
+                <option value="Main Gate">Main Gate (Default)</option>
+                {% endif %}
+            </select>
         </div>
-
-        <div id="result" class="result-section">
-            <div id="resultContent"></div>
+        <div class="button-group">
+            <button id="startIpCamButton">Use IP / Server Cam</button>
+            <button id="startPhoneCamButton">Use This Phone's Camera</button>
         </div>
+        <div class="status" id="streamStatus">Select a camera source.</div>
 
-        <div class="logs-section">
-            <h3 style="text-align: center; margin-bottom: 20px;">📋 Recent Detections</h3>
-            <div id="recentLogs"></div>
+        <div id="phoneCameraPreviewContainer" class="hidden">
+            <p style="font-size:12px; color:#606770; margin-bottom:5px;">Your phone camera preview (raw):</p>
+            <video id="phoneCameraPreview" width="240" autoplay playsinline muted></video>
         </div>
     </div>
 
-    <script>
-        let video, canvas, ctx;
-        let stream = null;
-        let totalAttempts = 0;
-        let successfulDetections = 0;
+    <div class="feed-panel">
+        <h2>Live ANPR Feed</h2>
+        <div id="videoFeedContainer">
+            <img id="videoFeed" src="" alt="Processed Video Stream">
+        </div>
+    </div>
 
-        const startBtn = document.getElementById('startBtn');
-        const captureBtn = document.getElementById('captureBtn');
-        const loading = document.getElementById('loading');
-        const result = document.getElementById('result');
-        const resultContent = document.getElementById('resultContent');
+    <div class="info-panel">
+        <h2>Last Captured Plate</h2>
+        <div class="last-capture-container">
+            <img id="lastCapturedImage" src="" alt="Last saved plate">
+            <div id="lastCapturedText">Text: N/A (Score: N/A)</div>
+        </div>
 
-        startBtn.addEventListener('click', startCamera);
-        captureBtn.addEventListener('click', captureAndDetect);
+        <div class="log-area-container">
+            <h2>Event Log</h2>
+            <div id="logArea"></div>
+        </div>
+    </div>
+</div>
 
-        async function startCamera() {
-            try {
-                video = document.getElementById('video');
-                canvas = document.getElementById('canvas');
-                ctx = canvas.getContext('2d');
+<script>
+    const videoFeedImg = document.getElementById('videoFeed');
+    const ipCameraUrlInput = document.getElementById('ip_camera_url');
+    const cameraIdInput = document.getElementById('camera_id_input');
+    const locationSelect = document.getElementById('location_select'); // Get location select dropdown
+    const streamStatus = document.getElementById('streamStatus');
+    const startIpCamButton = document.getElementById('startIpCamButton');
+    const startPhoneCamButton = document.getElementById('startPhoneCamButton');
 
-                const constraints = {
-                    video: {
-                        facingMode: 'environment', // Use rear camera
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+    const phoneCameraPreview = document.getElementById('phoneCameraPreview');
+    const phoneCameraPreviewContainer = document.getElementById('phoneCameraPreviewContainer');
+
+    const logArea = document.getElementById('logArea');
+    const lastCapturedImage = document.getElementById('lastCapturedImage');
+    const lastCapturedText = document.getElementById('lastCapturedText');
+
+    let socket = null;
+    let phoneStreamInterval = null;
+    let localMediaStream = null;
+    const MAX_LOG_LINES = 100;
+
+    function addLogMessage(message, level = "info") {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.classList.add(`log-${level}`);
+        logEntry.textContent = `[${timestamp}] ${message}`;
+        logArea.appendChild(logEntry);
+        if (logArea.children.length > MAX_LOG_LINES) {
+            logArea.removeChild(logArea.firstChild);
+        }
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function connectSocket() {
+        if (!socket || !socket.connected) {
+            socket = io({transports: ['websocket'], upgrade: false});
+            socket.on('connect', () => { addLogMessage('Socket.IO connected.', 'success'); });
+            socket.on('disconnect', () => { addLogMessage('Socket.IO disconnected.', 'warn'); });
+            socket.on('connect_error', (err) => { addLogMessage(`Socket.IO connection error: ${err.message}`, 'error');});
+            socket.on('new_log', function(data) { addLogMessage(data.message, data.level); });
+            socket.on('new_plate_saved', function(data) {
+                addLogMessage(`New plate saved: ${data.filename} - Text: ${data.text} (Score: ${data.score})`, 'success');
+                lastCapturedImage.src = `/get_image/${data.filename}?t=${new Date().getTime()}`;
+                lastCapturedText.textContent = `Text: ${data.text} (Score: ${data.score})`;
+            });
+        }
+    }
+
+    function stopPhoneCameraStream() {
+        if (phoneStreamInterval) { clearInterval(phoneStreamInterval); phoneStreamInterval = null; }
+        if (localMediaStream) { localMediaStream.getTracks().forEach(track => track.stop()); localMediaStream = null; }
+        phoneCameraPreviewContainer.classList.add('hidden');
+        phoneCameraPreview.srcObject = null;
+        addLogMessage("Phone camera stream stopped.");
+    }
+
+    startIpCamButton.onclick = function() {
+        stopPhoneCameraStream();
+        const ipCameraUrl = ipCameraUrlInput.value.trim();
+        const camId = cameraIdInput.value.trim() || 'server_cam_default';
+        const loc = locationSelect.value; // Get value from select dropdown
+
+        let sourceParam = 'local';
+        if (ipCameraUrl && ipCameraUrl.toLowerCase() !== 'local') {
+            sourceParam = ipCameraUrl;
+        }
+
+        videoFeedImg.src = `{{ url_for('video_feed_route') }}?source=${encodeURIComponent(sourceParam)}&id=${encodeURIComponent(camId)}&location=${encodeURIComponent(loc)}&t=${new Date().getTime()}`;
+        streamStatus.textContent = `Attempting Cam: ${camId} at ${loc} (Source: ${ipCameraUrl || "local"})`;
+        addLogMessage(`Starting stream from Cam ID: ${camId}, Location: ${loc}, Source: ${ipCameraUrl || "local"}`);
+    };
+
+    startPhoneCamButton.onclick = async function() {
+        connectSocket();
+        phoneCameraPreviewContainer.classList.remove('hidden');
+        streamStatus.textContent = "Requesting phone camera...";
+        addLogMessage("Requesting phone camera access...");
+
+        const camId = cameraIdInput.value.trim() || 'phone_cam_user';
+        const loc = locationSelect.value; // Get value from select dropdown for phone camera too
+
+        try {
+            if (localMediaStream) { localMediaStream.getTracks().forEach(track => track.stop()); }
+            localMediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            phoneCameraPreview.srcObject = localMediaStream;
+            addLogMessage("Phone camera access granted.", "success");
+            streamStatus.textContent = "Streaming from phone to server...";
+            videoFeedImg.src = `{{ url_for('video_feed_route') }}?source=phone_stream&id=${encodeURIComponent(camId)}&location=${encodeURIComponent(loc)}&t=${new Date().getTime()}`;
+
+            if (phoneStreamInterval) clearInterval(phoneStreamInterval);
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            phoneStreamInterval = setInterval(() => {
+                if (phoneCameraPreview.readyState === phoneCameraPreview.HAVE_ENOUGH_DATA) {
+                    canvas.width = phoneCameraPreview.videoWidth;
+                    canvas.height = phoneCameraPreview.videoHeight;
+                    context.drawImage(phoneCameraPreview, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                    if (socket && socket.connected) {
+                        socket.emit('phone_frame_stream', { image_data: dataUrl });
                     }
-                };
-
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = stream;
-
-                video.onloadedmetadata = () => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                };
-
-                startBtn.textContent = '📷 Camera Active';
-                startBtn.disabled = true;
-                captureBtn.disabled = false;
-
-                // Load recent logs
-                loadRecentLogs();
-                updateStats();
-
-            } catch (error) {
-                console.error('Error accessing camera:', error);
-                alert('Unable to access camera. Please ensure you have granted camera permissions.');
-            }
-        }
-
-        async function captureAndDetect() {
-            if (!video || !canvas) return;
-
-            // Show loading
-            loading.style.display = 'block';
-            result.style.display = 'none';
-            captureBtn.disabled = true;
-
-            // Capture frame
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = canvas.toDataURL('image/jpeg', 0.8);
-
-            try {
-                totalAttempts++;
-
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ image: imageData })
-                });
-
-                const data = await response.json();
-
-                loading.style.display = 'none';
-                result.style.display = 'block';
-                captureBtn.disabled = false;
-
-                if (data.success) {
-                    successfulDetections++;
-                    result.className = 'result-section result-success';
-                    resultContent.innerHTML = `
-                        <h3>✅ License Plate Detected!</h3>
-                        <div class="plate-number">${data.plate_number}</div>
-                        <div class="confidence">Confidence: ${data.confidence}%</div>
-                        <div class="timestamp">Detected at: ${data.timestamp}</div>
-                        ${data.processed_image ? `<img src="/uploads/${data.processed_image}" class="processed-image" alt="Processed Image">` : ''}
-                        ${data.cropped_image ? `<div style="margin-top: 10px;"><strong>Cropped Plate:</strong><br><img src="/uploads/${data.cropped_image}" class="processed-image" alt="Cropped Plate"></div>` : ''}
-                        ${data.debug_info ? `<div style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">Debug: ${data.debug_info}</div>` : ''}
-                    `;
-                } else {
-                    result.className = 'result-section result-error';
-                    resultContent.innerHTML = `
-                        <h3>❌ Detection Failed</h3>
-                        <p>${data.error}</p>
-                        ${data.debug_info ? `<p style="font-size: 0.9rem; opacity: 0.8;">Debug: ${data.debug_info}</p>` : ''}
-                        ${data.cropped_image ? `<div style="margin-top: 10px;"><strong>Detected Region (No Text):</strong><br><img src="/uploads/${data.cropped_image}" class="processed-image" alt="Detected Region"></div>` : ''}
-                        ${data.debug_image ? `<div style="margin-top: 10px;"><strong>Debug - All Contours:</strong><br><img src="/uploads/${data.debug_image}" class="processed-image" alt="Debug Image"></div>` : ''}
-                        <p><small>Try adjusting the angle, distance, or lighting conditions.</small></p>
-                    `;
                 }
+            }, 150);
+        } catch (err) {
+            console.error("Error accessing phone camera:", err);
+            addLogMessage(`Error accessing phone camera: ${err.message}`, 'error');
+            streamStatus.textContent = "Error: Could not access phone camera.";
+            phoneCameraPreviewContainer.classList.add('hidden');
+        }
+    };
 
-                updateStats();
-                loadRecentLogs();
-
-            } catch (error) {
-                loading.style.display = 'none';
-                result.style.display = 'block';
-                result.className = 'result-section result-error';
-                resultContent.innerHTML = `
-                    <h3>❌ Error</h3>
-                    <p>Failed to process image: ${error.message}</p>
-                `;
-                captureBtn.disabled = false;
+    videoFeedImg.onload = function() {
+        if (videoFeedImg.src && videoFeedImg.src.includes("source=")) {
+             const urlParams = new URLSearchParams(new URL(videoFeedImg.src).search);
+             const location = urlParams.get('location');
+             if (videoFeedImg.src.includes("source=phone_stream")) {
+                streamStatus.textContent = `Phone stream active for ${location}. (Preview on phone)`;
+            } else {
+                 streamStatus.textContent = `Streaming from IP/Server Cam for ${location}.`;
             }
+        } else {
+            streamStatus.textContent = "Stream stopped or not yet started.";
         }
+        videoFeedImg.style.backgroundColor = 'transparent';
+    };
 
-        async function loadRecentLogs() {
-            try {
-                const response = await fetch('/logs');
-                const logs = await response.json();
-                const recentLogs = logs.slice(-5).reverse(); // Last 5 detections
+    videoFeedImg.onerror = function() {
+        streamStatus.textContent = "Error loading processed stream. Check server console.";
+        addLogMessage("Error loading processed video stream from server.", "error");
+        videoFeedImg.style.backgroundColor = '#500'; // Reddish background for error
+    };
 
-                const logsContainer = document.getElementById('recentLogs');
-                if (recentLogs.length === 0) {
-                    logsContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">No detections yet</p>';
-                } else {
-                    logsContainer.innerHTML = recentLogs.map(log => `
-                        <div class="log-entry">
-                            <div>
-                                <div class="log-plate">${log.plate_number}</div>
-                                <div class="log-time">${log.timestamp}</div>
-                            </div>
-                            <div style="opacity: 0.7;">${Math.round(log.confidence * 100)}%</div>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Failed to load logs:', error);
-            }
-        }
-
-        function updateStats() {
-            document.getElementById('totalDetections').textContent = successfulDetections;
-            const successRate = totalAttempts > 0 ? Math.round((successfulDetections / totalAttempts) * 100) : 0;
-            document.getElementById('successRate').textContent = successRate + '%';
-        }
-
-        // Auto-refresh logs every 30 seconds
-        setInterval(loadRecentLogs, 30000);
-    </script>
+    window.onload = function() {
+        streamStatus.textContent = "Select a camera source to start.";
+        addLogMessage("ANPR Interface Loaded. Please select a camera source.");
+        connectSocket();
+        // If you want to automatically start with the first location from the dropdown:
+        // startIpCamButton.click(); // Uncomment to auto-start, ensure default values are okay
+    };
+</script>
 </body>
 </html>
