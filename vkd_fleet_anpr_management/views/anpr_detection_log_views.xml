@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ANPR Detection Log Views (Updated) -->
+    <record id="view_anpr_detection_log_list_extended" model="ir.ui.view">
+        <field name="name">anpr.detection.log.list.extended</field>
+        <field name="model">anpr.detection.log</field>
+        <field name="arch" type="xml">
+            <list string="ANPR Detection Logs">
+                <field name="captured_image" widget="image" width="60px" height="40px" string="Plate ROI"/>
+                <field name="detection_time"/>
+                <field name="license_plate"/>
+                <field name="location_id"/>
+                <field name="camera_source_identifier"/> <!-- Changed from camera_source -->
+                <field name="confidence_score" optional="show"/>
+                <field name="image_filename" column_invisible="1"/>
+                <field name="attachment_id" column_invisible="1"/>
+                <field name="full_frame_filename" column_invisible="1"/>
+                <field name="full_frame_attachment_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_anpr_detection_log_form_extended" model="ir.ui.view">
+        <field name="name">anpr.detection.log.form.extended</field>
+        <field name="model">anpr.detection.log</field>
+        <field name="arch" type="xml">
+            <form string="ANPR Detection Log" create="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="license_plate" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Detection Information">
+                            <field name="detection_time" readonly="1"/>
+                            <field name="detection_date" readonly="1"/>
+                            <field name="confidence_score" readonly="1"/>
+                        </group>
+                        <group string="Camera &amp; Location">
+                            <field name="camera_source_identifier" readonly="1"/> <!-- Changed from camera_source -->
+                            <field name="location_id" options="{'no_create': True, 'no_open': False}" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Images">
+                            <group>
+                                <group string="Captured Plate Image (ROI)">
+                                    <field name="captured_image"
+                                           widget="image"
+                                           filename="image_filename"
+                                           nolabel="1"
+                                           options='{"preview_image": "captured_image", "size": [350, 250]}'
+                                           readonly="1"/>
+                                    <field name="image_filename" readonly="1"/>
+                                </group>
+                                <group string="Full Frame Snapshot">
+                                    <field name="full_frame_image"
+                                           widget="image"
+                                           filename="full_frame_filename"
+                                           nolabel="1"
+                                           options='{"preview_image": "full_frame_image", "size": [600, 450]}'
+                                           readonly="1"/>
+                                    <field name="full_frame_filename" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Attachment Details">
+                            <group>
+                                <field name="attachment_id" string="Plate ROI Attachment" readonly="1"/>
+                                <field name="full_frame_attachment_id" string="Full Frame Attachment" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_anpr_detection_log_kanban_extended" model="ir.ui.view">
+        <field name="name">anpr.detection.log.kanban.extended</field>
+        <field name="model">anpr.detection.log</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="id"/>
+                <field name="license_plate"/>
+                <field name="detection_time"/>
+                <field name="captured_image"/>
+                <field name="camera_source_identifier"/> <!-- Changed from camera_source -->
+                <field name="location_id"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click d-flex flex-column">
+                            <div class="o_kanban_image_fill_top mx-auto text-center"
+                                 style="height: 100px; width: 100%;">
+                                <img t-att-src="kanban_image('anpr.detection.log', 'captured_image', record.id.raw_value)"
+                                     class="img img-fluid"
+                                     alt="License Plate"
+                                     style="object-fit: contain; max-height: 100%; max-width: 100%;"/>
+                            </div>
+                            <div class="oe_kanban_details d-flex flex-column flex-grow-1 p-2">
+                                <strong class="o_kanban_record_title">
+                                    <field name="license_plate"/>
+                                </strong>
+                                <div class="text-muted">
+                                    <field name="detection_time" widget="datetime"
+                                           options='{"format": "MM/dd/yyyy HH:mm"}'/>
+                                </div>
+                                <div class="text-muted">
+                                    <i class="fa fa-video-camera me-1" title="Camera ID" role="img"
+                                       aria-label="Camera ID"/>
+                                    <field name="camera_source_identifier"/> <!-- Changed from camera_source -->
+                                </div>
+                                <div class="text-muted">
+                                    <i class="fa fa-map-marker me-1" title="Location" role="img" aria-label="Location"/>
+                                    <field name="location_id"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_anpr_detection_log_search_extended" model="ir.ui.view">
+        <field name="name">anpr.detection.log.search.extended</field>
+        <field name="model">anpr.detection.log</field>
+        <field name="arch" type="xml">
+            <search string="Search Detection Logs">
+                <field name="license_plate"/>
+                <field name="camera_source_identifier"/> <!-- Changed from camera_source -->
+                <field name="location_id"/>
+                <field name="image_filename" string="Plate Filename"/>
+                <field name="full_frame_filename" string="Snapshot Filename"/>
+                <filter string="Today" name="today"
+                        domain="[('detection_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="This Week" name="this_week"
+                        domain="[('detection_date', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Location" name="group_location" context="{'group_by': 'location_id'}"/>
+                    <filter string="Camera ID" name="group_camera_id"
+                            context="{'group_by': 'camera_source_identifier'}"/> <!-- Changed from camera_source -->
+                    <filter string="Detection Date" name="group_date" context="{'group_by': 'detection_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for ANPR Detection Logs -->
+    <record id="action_anpr_detection_log_extended" model="ir.actions.act_window">
+        <field name="name">ANPR Detection Logs</field>
+        <field name="res_model">anpr.detection.log</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_anpr_detection_log_search_extended"/>
+        <field name="context">{'search_default_today': 1, 'search_default_group_location': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No ANPR detection logs found yet.
+            </p>
+            <p>
+                Detections from your ANPR system will appear here.
+            </p>
+        </field>
+    </record>
+
+</odoo>

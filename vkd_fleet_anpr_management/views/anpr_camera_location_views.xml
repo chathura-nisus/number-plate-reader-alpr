@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ANPR Camera Location Views -->
+    <record id="view_anpr_camera_location_list" model="ir.ui.view">
+        <field name="name">anpr.camera.location.list</field>
+        <field name="model">anpr.camera.location</field>
+        <field name="arch" type="xml">
+            <list string="Camera Locations">
+                <field name="name"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_anpr_camera_location_form" model="ir.ui.view">
+        <field name="name">anpr.camera.location.form</field>
+        <field name="model">anpr.camera.location</field>
+        <field name="arch" type="xml">
+            <form string="Camera Location">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="description" widget="text"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_anpr_camera_location_search" model="ir.ui.view">
+        <field name="name">anpr.camera.location.search</field>
+        <field name="model">anpr.camera.location</field>
+        <field name="arch" type="xml">
+            <search string="Search Camera Locations">
+                <field name="name"/>
+                <field name="description"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for ANPR Camera Locations -->
+    <record id="action_anpr_camera_location" model="ir.actions.act_window">
+        <field name="name">Camera Locations</field>
+        <field name="res_model">anpr.camera.location</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new camera location.
+            </p>
+            <p>
+                Define different locations where your ANPR cameras are installed,
+                like "Main Gate", "Warehouse Entrance", etc.
+            </p>
+        </field>
+    </record>
+
+</odoo>

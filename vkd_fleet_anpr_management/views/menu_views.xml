@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main Menu -->
+    <menuitem id="menu_anpr_main"
+              name="ANPR Logs"
+              sequence="10"
+              web_icon="vkd_fleet_anpr_management,static/description/icon.png"/>
+
+
+    <!-- Detection Logs Submenu (Parented to menu_anpr_main) -->
+    <menuitem id="menu_anpr_detection_logs_action_submenu"
+              name="Detection Logs"
+              parent="menu_anpr_main"
+              action="action_anpr_detection_log_extended"
+              sequence="10"/>
+
+    <!-- Configuration Submenu (Parented to menu_anpr_main) -->
+    <menuitem id="menu_anpr_configuration"
+              name="Configuration"
+              parent="menu_anpr_main"
+              sequence="100"/>
+
+        <!-- Camera Locations Menu Item (Under Configuration) -->
+        <menuitem id="menu_anpr_camera_location_action_submenu"
+                  name="Camera Locations"
+                  parent="menu_anpr_configuration"
+                  action="action_anpr_camera_location"
+                  sequence="10"/>
+</odoo>
