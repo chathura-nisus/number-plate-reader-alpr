@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_anpr_camera_location_group_user,anpr.camera.location.group.user,model_anpr_camera_location,base.group_user,1,1,1,1
+access_anpr_camera_location_group_manager,anpr.camera.location.group.manager,model_anpr_camera_location,base.group_system,1,1,1,1
+
+access_anpr_detection_log_group_user,anpr.detection.log.group.user,model_anpr_detection_log,base.group_user,1,0,0,0
+access_anpr_detection_log_group_manager,anpr.detection.log.group.manager,model_anpr_detection_log,base.group_system,1,1,1,1

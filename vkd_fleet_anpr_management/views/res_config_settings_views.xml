@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_anpr" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.anpr</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <div class="app_settings_block" data-string="ANPR Settings" string="ANPR"
+                     data-key="vkd_fleet_anpr_management">
+                    <h2>ANPR Service Configuration</h2>
+                    <div class="row mt16 o_settings_container" name="anpr_setting_container">
+
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="ocr_engine"/>
+                                <div class="text-muted">
+                                    Choose the engine for the final plate recognition.
+                                </div>
+                                <div class="content-group">
+                                    <div class="mt16">
+                                        <field name="ocr_engine" widget="radio" options="{'horizontal': true}"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box" invisible="ocr_engine != 'gemini'">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="gemini_api_key"/>
+                                <div class="text-muted">
+                                    Enter your API key from OpenRouter to use Gemini.
+                                </div>
+                                <div class="content-group">
+                                    <div class="mt16">
+                                        <field name="gemini_api_key" password="True" class="oe_inline"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box"
+                             title="The network address of the Python server that runs the cameras.">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="flask_server_url"/>
+                                <div class="text-muted">
+                                    e.g., http://192.168.1.100:8080
+                                </div>
+                                <div class="content-group">
+                                    <div class="mt16">
+                                        <field name="flask_server_url" class="oe_inline" placeholder="http://..."/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box"
+                             title="This secret key is used to secure communication between Odoo and the ANPR server.">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="jwt_secret_key" string="API Secret Key"/>
+                                <span class="fa fa-lg fa-key" title="API Secret Key" role="img"
+                                      aria-label="API Secret Key"/>
+                                <div class="text-muted">
+                                    A secure key for API calls. The ANPR server will fetch this automatically.
+                                </div>
+                                <div class="content-group">
+                                    <div class="mt16">
+                                        <field name="jwt_secret_key" class="oe_inline" readonly="1"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_anpr_config_settings" model="ir.actions.act_window">
+        <field name="name">ANPR Settings</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module' : 'vkd_fleet_anpr_management'}</field>
+    </record>
+
+</odoo>

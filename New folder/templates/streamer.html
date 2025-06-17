@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ANPR Remote Camera Streamer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding-top: 20px; background-color: #f0f2f5; }
+        .container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
+        video { border: 1px solid #ccc; border-radius: 6px; background-color: #000; max-width: 100%; }
+        input { font-size: 16px; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { font-size: 16px; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; }
+        .start { background-color: #1877f2; color: white; }
+        .stop { background-color: #e41e3f; color: white; }
+        #status { margin-top: 15px; font-weight: bold; color: #606770; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Remote Camera Streamer</h1>
+    <p>Use this page to send your webcam feed to the central ANPR server.</p>
+    <video id="preview" width="480" autoplay muted playsinline></video>
+    <br>
+    <input type="text" id="streamName" placeholder="Enter a unique stream name (e.g., Gate_2_PC)">
+    <br>
+    <button id="startButton" class="start">Start Streaming</button>
+    <button id="stopButton" class="stop" disabled>Stop Streaming</button>
+    <div id="status">Status: Idle</div>
+</div>
+
+<script>
+    const preview = document.getElementById('preview');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    const streamNameInput = document.getElementById('streamName');
+    const statusDiv = document.getElementById('status');
+
+    let socket = null;
+    let localMediaStream = null;
+    let streamInterval = null;
+
+    startButton.onclick = async () => {
+        const streamName = streamNameInput.value.trim();
+        if (!streamName) {
+            alert('Please enter a unique stream name.');
+            return;
+        }
+
+        try {
+            // 1. Connect to Socket.IO
+            socket = io();
+            statusDiv.textContent = 'Status: Connecting...';
+
+            socket.on('connect', () => {
+                statusDiv.textContent = `Status: Connected. Starting camera...`;
+                startCameraAndStream(streamName);
+            });
+            socket.on('disconnect', () => statusDiv.textContent = 'Status: Disconnected from server.');
+
+        } catch (err) {
+            statusDiv.textContent = `Error: ${err.message}`;
+        }
+    };
+
+    async function startCameraAndStream(streamName) {
+        // 2. Get webcam access
+        localMediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        preview.srcObject = localMediaStream;
+
+        // 3. Start sending frames to server
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        streamInterval = setInterval(() => {
+            if (preview.readyState === preview.HAVE_ENOUGH_DATA && socket && socket.connected) {
+                canvas.width = preview.videoWidth;
+                canvas.height = preview.videoHeight;
+                context.drawImage(preview, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+                socket.emit('remote_camera_stream', {
+                    stream_id: streamName,
+                    image_data: dataUrl
+                });
+            }
+        }, 200); // Send a frame every 200ms (5 FPS)
+
+        statusDiv.textContent = `Status: Streaming as '${streamName}'`;
+        streamNameInput.disabled = true;
+        startButton.disabled = true;
+        stopButton.disabled = false;
+    }
+
+    stopButton.onclick = () => {
+        if (streamInterval) clearInterval(streamInterval);
+        if (localMediaStream) localMediaStream.getTracks().forEach(track => track.stop());
+        if (socket) socket.disconnect();
+
+        preview.srcObject = null;
+        statusDiv.textContent = 'Status: Idle';
+        streamNameInput.disabled = false;
+        startButton.disabled = false;
+        stopButton.disabled = true;
+    };
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_anpr_detection_log_list_extended" model="ir.ui.view">
+        <field name="name">anpr.detection.log.list.extended</field>
+        <field name="model">anpr.detection.log</field>
+        <field name="arch" type="xml">
+            <list string="ANPR Detection Logs">
+                <field name="captured_image" widget="image" class="oe_avatar" string="Plate"/>
+                <field name="detection_time" widget="datetime"/>
+                <field name="license_plate"/>
+                <field name="location_id"/>
+                <field name="camera_source_identifier" optional="hide"/>
+                <field name="confidence_score" optional="show" widget="percentage"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_anpr_detection_log_form_extended" model="ir.ui.view">
+        <field name="name">anpr.detection.log.form.extended</field>
+        <field name="model">anpr.detection.log</field>
+        <field name="arch" type="xml">
+            <form string="ANPR Detection Log">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="license_plate"/>
+                            <field name="location_id"/>
+                            <field name="camera_source_identifier"/>
+                        </group>
+                        <group>
+                            <field name="detection_time"/>
+                            <field name="confidence_score" widget="percentage"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Images" name="images">
+                            <separator string="Captured Plate Image"/>
+                            <field name="captured_image" widget="image" class="oe_kanban_image" nolabel="1"/>
+                            <separator string="Full Frame Snapshot"/>
+                            <field name="full_frame_image" widget="image" class="oe_kanban_image" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_anpr_detection_log_kanban_extended" model="ir.ui.view">
+        <field name="name">anpr.detection.log.kanban.extended</field>
+        <field name="model">anpr.detection.log</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <field name="license_plate"/>
+                <field name="detection_time"/>
+                <field name="location_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_image">
+                                <img t-attf-src="/web/image/anpr.detection.log/{{record.id.raw_value}}/captured_image"
+                                     class="o_kanban_image_fill_left" alt="Plate Image"/>
+                            </div>
+                            <div class="oe_kanban_details">
+                                <strong class="o_kanban_record_title">
+                                    <field name="license_plate"/>
+                                </strong>
+                                <ul>
+                                    <li>
+                                        <field name="location_id"/>
+                                    </li>
+                                    <li>
+                                        <field name="detection_time"/>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_anpr_detection_log_search_extended" model="ir.ui.view">
+        <field name="name">anpr.detection.log.search.extended</field>
+        <field name="model">anpr.detection.log</field>
+        <field name="arch" type="xml">
+            <search string="Search ANPR Logs">
+                <field name="license_plate" string="License Plate"/>
+                <field name="location_id"/>
+                <field name="camera_source_identifier"/>
+                <separator/>
+                <filter string="Today" name="today"
+                        domain="[('detection_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="This Week" name="this_week"
+                        domain="[('detection_date', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Location" name="group_location" context="{'group_by': 'location_id'}"/>
+                    <filter string="Camera ID" name="group_camera_id"
+                            context="{'group_by': 'camera_source_identifier'}"/>
+                    <filter string="Detection Date" name="group_date" context="{'group_by': 'detection_date'}"
+                            help="Group by day"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_anpr_detection_log_extended" model="ir.actions.act_window">
+        <field name="name">ANPR Detection Logs</field>
+        <field name="res_model">anpr.detection.log</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_anpr_detection_log_search_extended"/>
+        <field name="context">{'search_default_today': 1, 'search_default_group_location': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No ANPR detection logs found yet.
+            </p>
+            <p>
+                Once the ANPR service is running, detected license plates will appear here.
+            </p>
+        </field>
+    </record>
+
+</odoo>

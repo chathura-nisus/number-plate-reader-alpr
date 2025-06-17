@@ -1,0 +1,21 @@
+{
+    'name': "ANPR Management",
+    'version': '18.0.1.0.0',
+    'category': 'Fleet',
+    'summary': """Automatic Number Plate Recognition integration for Fleet Management""",
+    'description': """ Automatic Number Plate Recognition integration for Fleet Management""",
+    'author': "VK Data ApS",
+    'website': "https://vkdata.dk",
+    'depends': ['base_setup', 'base', 'mail', 'web'],
+    'data': [
+        'security/ir.model.access.csv',
+        'views/anpr_detection_log_views.xml',
+        'views/anpr_camera_location_views.xml',
+        'views/res_config_settings_views.xml',
+        'views/menu_views.xml',
+    ],
+    'licence': 'OPL-1',
+    'application': False,
+    'installable': True,
+    'auto_install': False,
+}

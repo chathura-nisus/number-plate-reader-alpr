@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; }
+        .top-bar { background-color: #fff; color: #1c1e21; padding: 10px 30px; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; margin-bottom: 20px; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #dddfe2;}
+        .top-bar h1 { margin: 0; font-size: 24px; }
+        .main-container { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 1800px; padding: 10px; gap: 20px;}
+        .panel { background: #fff; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); padding: 20px; }
+        .side-panel { flex: 0 0 320px; height: fit-content; }
+        .main-content { flex: 1; min-width: 60%; }
+        h2 { font-size: 18px; color: #606770; border-bottom: 1px solid #ccd0d5; padding-bottom: 10px; margin-top: 0; }
+        .camera-buttons-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .camera-button { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #dddfe2; border-radius: 6px; }
+        .camera-button span { font-weight: 600; }
+        .action-button { font-size: 14px; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
+        .start-button { background-color: #42b72a; color: white; }
+        .stop-button { background-color: #f02849; color: white; }
+        /* MODIFIED: Changed minmax from 480px to a smaller 420px and used auto-fit */
+        .feed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; }
+        /* MODIFIED: Removed the max-width to let the grid handle sizing */
+        .feed-card { background: #000; border-radius: 8px; overflow: hidden; position: relative; }
+        .feed-card h3 { position: absolute; top: 0; left: 0; background: rgba(0,0,0,0.5); color: white; padding: 8px; margin: 0; font-size: 16px; width: 100%; box-sizing: border-box; }
+        .feed-card img { width: 100%; display: block; }
+        .log-box { max-height: 400px; overflow-y: auto; background-color: #1c1e21; color: #e4e6eb; padding: 15px; border-radius: 6px; font-family: 'Menlo', 'Consolas', monospace; font-size: 12px; line-height: 1.5; }
+        .log-line { word-break: break-all; }
+        .log-line.error { color: #f02849; }
+        .log-line.warn { color: #f5c33b; }
+        .log-line.success { color: #42b72a; }
+        .last-plate-card img { max-width: 100%; border-radius: 6px; border: 1px solid #dddfe2; margin-top: 10px;}
+        .last-plate-card p { font-size: 18px; font-weight: 600; text-align: center; margin-top: 10px;}
+    </style>
+</head>
+<body>
+<div class="top-bar"><h1>{{ title }}</h1></div>
+<div class="main-container">
+    <div class="side-panel">
+        <div class="panel">
+            <h2>Camera Controls</h2>
+            <div id="camera-buttons-grid" class="camera-buttons-grid">
+                {% if locations %}
+                {% for location in locations %}
+                <div class="camera-button" id="control_cam_{{ location.id }}">
+                    <span>{{ location.name }}</span>
+                    {% set cam_id = 'cam_' ~ location.id %}
+                    {% if cam_id in active_cameras %}
+                    <button class="action-button stop-button" data-cam-id="{{ cam_id }}">Stop</button>
+                    {% else %}
+                    <button class="action-button start-button" data-cam-id="{{ cam_id }}"
+                            data-cam-name="{{ location.name }}" data-cam-source="{{ location.source }}">Start
+                    </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <p>No camera locations found. Define cameras in Odoo.</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="panel" style="margin-top: 20px;">
+            <h2>Last Saved Plate</h2>
+            <div id="last-plate-info" class="last-plate-card">
+                <p>Waiting for detection...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="panel">
+            <h2>Live Feeds</h2>
+            <div id="feed-grid" class="feed-grid"></div>
+        </div>
+        <div class="panel" style="margin-top: 20px;">
+            <h2>System Logs</h2>
+            <div id="log-box" class="log-box"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+        const logBox = document.getElementById('log-box');
+        const feedGrid = document.getElementById('feed-grid');
+        const lastPlateInfo = document.getElementById('last-plate-info');
+
+        const allLocations = {{ locations|tojson }};
+        const activeCameras = {{ active_cameras|tojson }};
+
+        socket.on('connect', () => addLogMessage('Connected to server.', 'success'));
+        socket.on('disconnect', () => addLogMessage('Disconnected from server.', 'error'));
+        socket.on('new_log', (data) => addLogMessage(data.message, data.level));
+
+        socket.on('camera_started', (data) => {
+            addLogMessage(`Event: Camera '${data.name}' started.`, 'info');
+            updateControlButton(data.identifier, data.name, false); // false = is not starting (show stop button)
+            createFeedCard(data.identifier, data.name);
+        });
+
+        socket.on('camera_stopped', (data) => {
+            addLogMessage(`Event: Camera '${data.name}' stopped.`, 'info');
+            updateControlButton(data.identifier, data.name, true); // true = is starting (show start button)
+            const card = document.getElementById(`feed-${data.identifier}`);
+            if (card) card.remove();
+        });
+
+        socket.on('new_plate_saved', (data) => {
+            addLogMessage(`New Plate Saved: ${data.text}`, 'success');
+            const imageUrl = `/get_image/${data.filename}?t=${new Date().getTime()}`;
+            lastPlateInfo.innerHTML = `
+                <img src="${imageUrl}" alt="Plate ${data.text}">
+                <p>${data.text}</p>
+            `;
+        });
+
+        function initializeDashboard() {
+            addLogMessage('Dashboard loaded. Initializing state.');
+            activeCameras.forEach(camId => {
+                const location = allLocations.find(loc => `cam_${loc.id}` === camId);
+                if (location) {
+                    createFeedCard(camId, location.name);
+                }
+            });
+        }
+
+        function addLogMessage(message, level = 'info') {
+            const logLine = document.createElement('div');
+            logLine.className = `log-line ${level.toLowerCase()}`;
+            logLine.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logBox.prepend(logLine);
+        }
+
+        function createFeedCard(camId, camName) {
+            const cardId = `feed-${camId}`;
+            if (document.getElementById(cardId)) return;
+            const card = document.createElement('div');
+            card.className = 'feed-card';
+            card.id = cardId;
+            card.innerHTML = `<h3>${camName}</h3><img src="/video_feed/${camId}?t=${new Date().getTime()}" alt="Live feed from ${camName}">`;
+            feedGrid.appendChild(card);
+        }
+
+        function updateControlButton(camId, camName, isStartButton) {
+            const controlDiv = document.getElementById(`control_${camId}`);
+            if (!controlDiv) return;
+
+            const existingButton = controlDiv.querySelector('button');
+            if (existingButton) existingButton.remove();
+
+            const newButton = document.createElement('button');
+            newButton.className = 'action-button';
+            newButton.dataset.camId = camId;
+
+            if (isStartButton) {
+                newButton.classList.add('start-button');
+                newButton.textContent = 'Start';
+                const location = allLocations.find(loc => `cam_${loc.id}` === camId);
+                if(location) {
+                    newButton.dataset.camName = location.name;
+                    newButton.dataset.camSource = location.source;
+                }
+            } else {
+                newButton.classList.add('stop-button');
+                newButton.textContent = 'Stop';
+            }
+            controlDiv.appendChild(newButton);
+        }
+
+        function sendApiRequest(endpoint, body) {
+            return fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            .then(response => {
+                if (!response.ok) { throw new Error(`HTTP error! Status: ${response.status}`); }
+                return response.json();
+            })
+            .catch(err => addLogMessage(`API Request Error: ${err}`, 'error'));
+        }
+
+        document.getElementById('camera-buttons-grid').addEventListener('click', function(e) {
+            if (e.target && e.target.matches('button.action-button')) {
+                const button = e.target;
+                const camId = button.dataset.camId;
+
+                if (button.classList.contains('start-button')) {
+                    const camName = button.dataset.camName;
+                    const camSource = button.dataset.camSource;
+                    addLogMessage(`Sending start command for ${camName}...`, 'info');
+                    sendApiRequest('/api/start_camera', {
+                        location_id: camId.split('_')[1],
+                        source: camSource,
+                        name: camName
+                    });
+                } else if (button.classList.contains('stop-button')) {
+                    const location = allLocations.find(loc => `cam_${loc.id}` === camId);
+                    const camName = location ? location.name : camId;
+                    addLogMessage(`Sending stop command for ${camName}...`, 'info');
+                    sendApiRequest('/api/stop_camera', { id: camId });
+                }
+            }
+        });
+
+        initializeDashboard();
+    });
+</script>
+</body>
+</html>
